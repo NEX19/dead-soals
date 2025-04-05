@@ -8,6 +8,7 @@ src/main.cpp
 src/utils.cpp
 src/models/Player.cpp
 src/controllers/Game.cpp
+src/controllers/CameraController.cpp
 src/visuals/Renderer.cpp
 )
 

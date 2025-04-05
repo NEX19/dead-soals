@@ -1,10 +1,9 @@
 #include "Player.h"
 #include "Renderer.h"
+#include "constants.h"
 
 #include "raylib.h"
 
-// #include <iostream>
-// using namespace std;
 
 Renderer::Renderer()
 {
@@ -17,24 +16,45 @@ Renderer::Renderer()
 
 void Renderer::render_player(Player& player)
 {
-    if(player.animation == PlayerAnimations::Idle) {
-        Rectangle source = Rectangle{float(176 * 4), float(161 * player.frame), 176, 161};
-        if(GetTime() - player.time_since_frame_change > 0.125) {
-            player.frame = (player.frame + 1) % 4;
-            player.time_since_frame_change = GetTime();
+    AnimationState anim = player.get_animation_state();
+    Rectangle rect = player.get_rectangle();
+    float rotation_angle = player.get_rotation_angle();
+    Color color = player.get_color();
+
+    if(anim.current == PlayerAnimations::Idle) {
+        Rectangle source = Rectangle{
+            PLAYER_SPRITE_WIDTH * IDLE_ANIMATION_COLUMN,
+            PLAYER_SPRITE_HEIGHT * anim.frame,
+            PLAYER_SPRITE_WIDTH, 
+            PLAYER_SPRITE_HEIGHT
+        };
+
+        if(GetTime() - anim.frame_timer > ANIMATION_UPDATE_RATE) { 
+            int new_frame = (anim.frame + 1) % PLAYER_ANIMATIONS_FRAMES_COUNT;
+            player.update_animation_state(new_frame);
         }
 
-        DrawTexturePro(player_texture, source, player.rect, Vector2{50, 50},
-        -player.rotation_angle, player.color);
+        DrawTexturePro(player_texture, source, rect, Vector2{PLAYER_WIDTH/2, PLAYER_HEIGHT/2},
+            -rotation_angle, color);
     }
-    else if(player.animation == PlayerAnimations::Walking) {
-        Rectangle source = Rectangle{float(176 * 3), float(161 * player.frame), 176, 161};
-        if(GetTime() - player.time_since_frame_change > 0.125) {
-            player.frame = (player.frame + 1) % 4;
-            player.time_since_frame_change = GetTime();
+    else if(anim.current == PlayerAnimations::Walking) {
+        Rectangle source = Rectangle{
+            PLAYER_SPRITE_WIDTH * WALKING_ANIMATION_COLUMN,
+            PLAYER_SPRITE_HEIGHT * anim.frame,
+            PLAYER_SPRITE_WIDTH, 
+            PLAYER_SPRITE_HEIGHT
+        };
+
+        if(GetTime() - anim.frame_timer > ANIMATION_UPDATE_RATE) { 
+            int new_frame = (anim.frame + 1) % PLAYER_ANIMATIONS_FRAMES_COUNT;
+            player.update_animation_state(new_frame);
         }
 
-        DrawTexturePro(player_texture, source, player.rect, Vector2{50, 50},
-        -player.rotation_angle, player.color);
+        DrawTexturePro(player_texture, source, rect, Vector2{PLAYER_WIDTH/2, PLAYER_HEIGHT/2},
+            -rotation_angle, color);
     }
+}
+
+Renderer::~Renderer() {
+    UnloadTexture(player_texture); 
 }

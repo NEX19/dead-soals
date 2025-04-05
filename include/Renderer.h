@@ -5,9 +5,11 @@
 class Player;
 
 class Renderer {    
-    public:
+    private:
         Texture2D player_texture;
-
+    
+    public:
         Renderer();
+        ~Renderer();
         void render_player(Player&);
 };

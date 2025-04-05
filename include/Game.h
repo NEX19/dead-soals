@@ -6,11 +6,12 @@
 #include "Player.h"
 #include "PlayerInput.h"
 #include "Renderer.h"
+#include "CameraController.h"
 
 class Game {
     private:
         Player player;
-        Camera2D camera;
+        std::unique_ptr<CameraController> camera_controller;
         std::unique_ptr<Renderer> renderer;
 
     public:

@@ -12,62 +12,110 @@
 
 using namespace std;
 
+// PUBLIC METHODS
+
 Player::Player() 
 {
-    rect = Rectangle{0, 0, 100, 100};
+    rect = Rectangle{0, 0, PLAYER_WIDTH, PLAYER_HEIGHT};
     speed = Vector2{0, 0};
+    scalar_speed = 0;
     color = WHITE;
+    
+    is_targeting = false;
 
-    frame = 0;
-    animation = PlayerAnimations::Idle;
-    time_since_frame_change = GetTime();
+    anim.frame = 0;
+    anim.current = PlayerAnimations::Idle;
+    anim.frame_timer = GetTime();
 }
 
 void Player::update()
 {
-    rect.x += speed.y * sin(rotation_angle * M_PI / 180);
-    rect.y += speed.y * cos(rotation_angle * M_PI / 180);
+    recalculate_speed();
+    reset_animations();
 
-    if(speed.y && animation == PlayerAnimations::Idle) {
-        animation = PlayerAnimations::Walking;
-        frame = 0;
-        time_since_frame_change = GetTime();
-    }
-    if(!speed.y && animation == PlayerAnimations::Walking) {
-        animation = PlayerAnimations::Idle;
-        frame = 0;
-        time_since_frame_change = GetTime();
-    }
+    rect.x += speed.x;
+    rect.y += speed.y;
 }  
 
-void Player::apply_input(PlayerInput input)
+void Player::set_last_input(const PlayerInput& input)
+{
+    last_input = input;
+}
+
+void Player::accept_renderer(Renderer& renderer)
+{
+    renderer.render_player(*this);
+}
+
+Rectangle Player::get_rectangle() const
+{
+    return rect;
+}
+
+AnimationState Player::get_animation_state() const
+{
+    return anim;
+}
+
+float Player::get_rotation_angle() const
+{
+    return rotation_angle;
+}
+
+Color Player::get_color() const
+{
+    return color;
+}
+
+void Player::update_animation_state(int new_frame)
+{
+    anim.frame = new_frame;
+    anim.frame_timer = GetTime();
+}
+
+// PRIVATE METHODS
+
+void Player::recalculate_speed()
 {
     float delta_time = GetFrameTime();
 
-    if(speed.y)
-        rotation_angle += input.angle_change;
+    if(!is_targeting) {
+        float speed_change = PLAYER_SPEED_INCREASE * delta_time * last_input.direction.y;
+        float angle_change = -1 * PLAYER_ANGLE_CHANGE * delta_time * last_input.direction.x;
 
-    int x_sign = sgn(input.speed_change.x);
-    int y_sign = sgn(input.speed_change.y);
+        bool is_moving = speed.x || speed.y || last_input.direction.y;
 
-    // this->speed.x = std::min(MAX_PLAYER_SPEED, (input.speed_change.x + this->speed.x) * x_sign) * x_sign;
-    this->speed.y = std::min(MAX_PLAYER_SPEED, (input.speed_change.y + this->speed.y) * y_sign) * y_sign;
+        if(is_moving)
+            rotation_angle += angle_change;     
+        
+        scalar_speed += speed_change;
+        scalar_speed = clamp(scalar_speed, -MAX_PLAYER_SPEED, MAX_PLAYER_SPEED);
 
-    // if(input.speed_change.x == 0) {
-    //     if(abs(this->speed.x) <= BREAK_INCREASE * delta_time) 
-    //         this->speed.x = 0;
-    //     if(this->speed.x < 0) this->speed.x += BREAK_INCREASE * delta_time;
-    //     if(this->speed.x > 0) this->speed.x -= BREAK_INCREASE * delta_time;
-    // }
-    if(input.speed_change.y == 0) {
-        if(abs(this->speed.y) <= BREAK_INCREASE * delta_time)
-            this->speed.y = 0;
-        if(this->speed.y < 0) this->speed.y += BREAK_INCREASE * delta_time;
-        if(this->speed.y > 0) this->speed.y -= BREAK_INCREASE * delta_time;
+        speed.x = scalar_speed * sin(deg_to_rad(rotation_angle));
+        speed.y = scalar_speed * cos(deg_to_rad(rotation_angle));
+
+        // stopping the player if no input
+        if(last_input.direction.y == 0) {
+            int speed_direction = sgn(scalar_speed); 
+            float friction_change = PLAYER_FRICTION_INCREASE * delta_time * speed_direction; 
+            if(abs(scalar_speed) < abs(friction_change))
+                scalar_speed = 0;
+            else
+                scalar_speed -= friction_change;
+        }
     }
 }
 
-void Player::accept_renderer(Renderer renderer)
+void Player::reset_animations()
 {
-    renderer.render_player(*this);
+    if(speed.y && anim.current == PlayerAnimations::Idle) {
+        anim.current = PlayerAnimations::Walking;
+        anim.frame = 0;
+        anim.frame_timer = GetTime();
+    }
+    if(!speed.y && anim.current == PlayerAnimations::Walking) {
+        anim.current = PlayerAnimations::Idle;
+        anim.frame = 0;
+        anim.frame_timer = GetTime();
+    }
 }

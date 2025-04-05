@@ -4,6 +4,6 @@
 
 struct AnimationState {
     PlayerAnimations current;
-    int frame;
+    int frame = 0;
     double frame_timer;
 };

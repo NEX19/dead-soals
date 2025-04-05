@@ -8,58 +8,43 @@
 using namespace std;
 
 Game::Game()
-{
-    player = Player();
-
-    camera = Camera2D{0};
-    camera.offset = Vector2{500, 500};
-    camera.target = Vector2{0, 0};
-    camera.zoom = 1.0;
-    camera.rotation = 0;
- 
-    renderer = std::make_unique<Renderer>();;
+{    
+    renderer = std::make_unique<Renderer>();
+    camera_controller = make_unique<CameraController>(player);
 }
 
 void Game::main_loop()
 {
-    SetTargetFPS(60);
+    SetTargetFPS(TARGET_FPS);
 
     while (!WindowShouldClose())
     {
-        this->update();
-        this->draw();
+        update();
+        draw();
     }
 
     CloseWindow();  
 }
 
 void Game::update() {
+    
+    // update player
     PlayerInput input = get_input();  
-
-    player.apply_input(input); 
+    player.set_last_input(input); 
     player.update();          
 
-    cout << player.rect.x << " " << player.rect.y << endl;
-
-    camera.target = {player.rect.x, player.rect.y};
+    // update camera
+    camera_controller->update(player);
 }
 
 PlayerInput Game::get_input()
 {
     PlayerInput input;
-    float delta_time = GetFrameTime();
-    bool is_button_pressed = false;
 
-    if(IsKeyDown(KEY_A)) input.angle_change += 90.0 * delta_time;
-    if(IsKeyDown(KEY_D)) input.angle_change -= 90.0 * delta_time;
-
-    if(player.speed.y)
-        camera.rotation += input.angle_change;
-
-    if(IsKeyDown(KEY_W)) input.speed_change.y -= SPEED_INCREASE * delta_time;
-    if(IsKeyDown(KEY_S)) input.speed_change.y += SPEED_INCREASE * delta_time;
-    if(IsKeyDown(KEY_A)) input.speed_change.x -= SPEED_INCREASE * delta_time;
-    if(IsKeyDown(KEY_D)) input.speed_change.x += SPEED_INCREASE * delta_time;
+    if(IsKeyDown(KEY_W)) input.direction.y -= 1;
+    if(IsKeyDown(KEY_S)) input.direction.y += 1;
+    if(IsKeyDown(KEY_A)) input.direction.x -= 1;
+    if(IsKeyDown(KEY_D)) input.direction.x += 1;
 
     return input;
 }
@@ -69,8 +54,9 @@ void Game::draw()
     BeginDrawing();
     ClearBackground(BLACK);
 
-    BeginMode2D(this->camera);
+    camera_controller->start_camera_mode();
     
+    // printing the grid
     for(int i = -50;i < 50;i++) {
         for(int j = -50;j < 50;j++) {
             Rectangle rec = Rectangle{float(i * 50), float(j * 50), 50, 50};
@@ -81,7 +67,7 @@ void Game::draw()
     
     player.accept_renderer(*renderer);
 
-    EndMode2D();
+    camera_controller->end_camera_mode();
 
     EndDrawing();
 }
